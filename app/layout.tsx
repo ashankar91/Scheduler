@@ -6,8 +6,8 @@ import Nav from '@/components/Nav'
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 
 export const metadata: Metadata = {
-  title: 'Scheduler',
-  description: 'Personal scheduler',
+  title: 'Schedule',
+  description: 'Personal schedule',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
