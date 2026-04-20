@@ -69,6 +69,7 @@ function inferType(allText: string, hasSecondPart: boolean): CommitmentType {
   if (allText.includes('talk')) return 'talk'
   if (allText.includes('seminar') || allText.includes('colloquium')) return 'seminar'
   if (allText.includes('advis')) return 'advising_meeting'
+  if (allText.includes('research') || allText.includes('meeting')) return 'research_meeting'
   if (hasSecondPart) return 'research_meeting'
   return 'misc'
 }
