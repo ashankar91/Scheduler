@@ -162,7 +162,18 @@ function parseUntilDate(tokens: string[]): { ymd: string; untilIdx: number } | n
   return null
 }
 
-function buildTitle(tokens: string[], extraParts: string[]): string {
+// Words used only to infer type — redundant in the title since type is shown by color/label
+const TYPE_KEYWORDS = new Set([
+  'research', 'meeting', 'meetings',
+  'teaching', 'teach', 'class', 'lecture',
+  'seminar', 'colloquium',
+  'talk',
+  'advising', 'advis',
+  'misc',
+  'with', // filler word
+])
+
+function buildTitle(tokens: string[], extraParts: string[], type: CommitmentType): string {
   const skipWords = new Set([...Object.keys(DAY_MAP), ...Object.keys(MONTH_MAP)])
   const titleTokens = tokens.filter(t => {
     if (skipWords.has(t)) return false
@@ -170,13 +181,25 @@ function buildTitle(tokens: string[], extraParts: string[]): string {
     if (/^(am|pm)$/i.test(t)) return false
     if (/^(every|other|until)$/i.test(t)) return false
     if (/^\d{4}$/.test(t)) return false
+    if (TYPE_KEYWORDS.has(t)) return false
     if (parseTime(t)) return false
     if (/^\d{1,2}-\d{1,2}$/.test(t)) return false
     return true
   })
   const parts = [titleTokens.join(' '), ...extraParts].filter(Boolean)
-  const title = parts.join(', ') || 'Event'
-  return title.charAt(0).toUpperCase() + title.slice(1)
+  const raw = parts.join(', ').trim()
+  if (raw) return raw.charAt(0).toUpperCase() + raw.slice(1)
+
+  // Nothing meaningful left — use a type-aware default
+  const defaults: Record<CommitmentType, string> = {
+    teaching:         'Class',
+    research_meeting: 'Research Meeting',
+    advising_meeting: 'Advising',
+    seminar:          'Seminar',
+    talk:             'Talk',
+    misc:             'Event',
+  }
+  return defaults[type]
 }
 
 export function parseQuickAdd(input: string): ParsedEvent | null {
@@ -232,10 +255,11 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
     // starts_on = next occurrence of the earliest day
     const startsOn = nextWeekday(daysOfWeek[0])
 
+    const recType = inferType(allText, parts.length >= 2)
     return {
       kind: 'recurring',
-      title: buildTitle(tokens, parts.slice(1)),
-      type: inferType(allText, parts.length >= 2),
+      title: buildTitle(tokens, parts.slice(1), recType),
+      type: recType,
       recurrence: isBiweekly ? 'biweekly' : 'weekly',
       days_of_week: daysOfWeek,
       start_hour: startHour,
@@ -288,10 +312,11 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
     end.setHours(end.getHours() + 1)
   }
 
+  const oneOffType = inferType(allText, parts.length >= 2)
   return {
     kind: 'one-off',
-    title: buildTitle(tokens, parts.slice(1)),
-    type: inferType(allText, parts.length >= 2),
+    title: buildTitle(tokens, parts.slice(1), oneOffType),
+    type: oneOffType,
     start,
     end,
   }
