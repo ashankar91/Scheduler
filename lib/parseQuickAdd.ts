@@ -173,22 +173,26 @@ const TYPE_KEYWORDS = new Set([
   'with', // filler word
 ])
 
-function buildTitle(tokens: string[], extraParts: string[], type: CommitmentType): string {
+function buildTitle(tokens: string[], originalTokens: string[], extraParts: string[], type: CommitmentType): string {
   const skipWords = new Set([...Object.keys(DAY_MAP), ...Object.keys(MONTH_MAP)])
-  const titleTokens = tokens.filter(t => {
-    if (skipWords.has(t)) return false
-    if (['__time__', '__meridiem__', '__dur__', '__skip__'].includes(t)) return false
-    if (/^(am|pm)$/i.test(t)) return false
-    if (/^(every|other|until)$/i.test(t)) return false
-    if (/^\d{4}$/.test(t)) return false
-    if (TYPE_KEYWORDS.has(t)) return false
-    if (parseTime(t)) return false
-    if (/^\d{1,2}-\d{1,2}$/.test(t)) return false
-    return true
-  })
+  // Filter using lowercased tokens but keep original-cased versions
+  const titleTokens = tokens
+    .map((t, i) => ({ lower: t, orig: originalTokens[i] ?? t }))
+    .filter(({ lower: t }) => {
+      if (skipWords.has(t)) return false
+      if (['__time__', '__meridiem__', '__dur__', '__skip__'].includes(t)) return false
+      if (/^(am|pm)$/i.test(t)) return false
+      if (/^(every|other|until)$/i.test(t)) return false
+      if (/^\d{4}$/.test(t)) return false
+      if (TYPE_KEYWORDS.has(t)) return false
+      if (parseTime(t)) return false
+      if (/^\d{1,2}-\d{1,2}$/.test(t)) return false
+      return true
+    })
+    .map(({ orig }) => orig)
   const parts = [titleTokens.join(' '), ...extraParts].filter(Boolean)
   const raw = parts.join(', ').trim()
-  if (raw) return raw.charAt(0).toUpperCase() + raw.slice(1)
+  if (raw) return raw
 
   // Nothing meaningful left — use a type-aware default
   const defaults: Record<CommitmentType, string> = {
@@ -208,6 +212,7 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
 
   const parts = raw.split(',').map(p => p.trim())
   const tokens = parts[0].toLowerCase().split(/\s+/)
+  const originalTokens = parts[0].split(/\s+/) // preserve original casing for title
   const allText = raw.toLowerCase()
 
   // Detect recurring: starts with "every"
@@ -258,7 +263,7 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
     const recType = inferType(allText, parts.length >= 2)
     return {
       kind: 'recurring',
-      title: buildTitle(tokens, parts.slice(1), recType),
+      title: buildTitle(tokens, originalTokens, parts.slice(1), recType),
       type: recType,
       recurrence: isBiweekly ? 'biweekly' : 'weekly',
       days_of_week: daysOfWeek,
@@ -315,7 +320,7 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
   const oneOffType = inferType(allText, parts.length >= 2)
   return {
     kind: 'one-off',
-    title: buildTitle(tokens, parts.slice(1), oneOffType),
+    title: buildTitle(tokens, originalTokens, parts.slice(1), oneOffType),
     type: oneOffType,
     start,
     end,
