@@ -54,6 +54,7 @@ export default function CalendarPage() {
   const [deleting, setDeleting] = useState(false)
   const [editingNotes, setEditingNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [quickAddInput, setQuickAddInput] = useState<string | undefined>(undefined)
   const popoverRef = useRef<HTMLDivElement>(null)
 
   const fetchEvents = useCallback(async () => {
@@ -140,6 +141,15 @@ export default function CalendarPage() {
     setDayEvents(all)
     setSelectedDay(date)
     setView('day')
+  }
+
+  function handleSlotClick(date: Date, hour: number) {
+    const DAY = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    const day = DAY[date.getDay()]
+    const time = hour >= 12
+      ? `${hour === 12 ? 12 : hour - 12}pm`
+      : `${hour}am`
+    setQuickAddInput(`${day} ${time} `)
   }
 
   async function saveNotes() {
@@ -260,6 +270,7 @@ export default function CalendarPage() {
             onNext={() => setWeekStart(d => addDays(d, 7))}
             onToday={() => setWeekStart(startOfWeek(new Date()))}
             onEventClick={handleEventClick}
+            onSlotClick={handleSlotClick}
           />
         ) : view === 'month' ? (
           <MonthView
@@ -346,7 +357,11 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <QuickAdd onCreated={fetchEvents} />
+      <QuickAdd
+        onCreated={fetchEvents}
+        initialInput={quickAddInput}
+        onClose={() => setQuickAddInput(undefined)}
+      />
     </>
   )
 }

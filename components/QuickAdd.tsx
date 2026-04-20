@@ -9,6 +9,8 @@ import { expandRecurring } from '@/lib/recurring'
 
 interface Props {
   onCreated: () => void
+  initialInput?: string
+  onClose?: () => void
 }
 
 const RECURRENCE_LABELS: Record<RecurrenceType, string> = {
@@ -26,7 +28,7 @@ function fmtTime(hour: number, minute: number): string {
 
 interface Conflict { title: string; time: string }
 
-export default function QuickAdd({ onCreated }: Props) {
+export default function QuickAdd({ onCreated, initialInput, onClose }: Props) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [notes, setNotes] = useState('')
@@ -49,10 +51,18 @@ export default function QuickAdd({ onCreated }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
+  // Allow parent to open us with a pre-filled input
+  useEffect(() => {
+    if (initialInput !== undefined) {
+      setOpen(true)
+      handleChange(initialInput)
+    }
+  }, [initialInput]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50)
-    else { setInput(''); setNotes(''); setPreview(null); setConflicts([]) }
-  }, [open])
+    else { setInput(''); setNotes(''); setPreview(null); setConflicts([]); onClose?.() }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleChange(val: string) {
     setInput(val)

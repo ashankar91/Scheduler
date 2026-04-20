@@ -29,9 +29,10 @@ interface Props {
   onNext: () => void
   onToday: () => void
   onEventClick: (ev: CalendarEvent, domEvent: React.MouseEvent) => void
+  onSlotClick?: (date: Date, hour: number) => void
 }
 
-export default function WeekView({ events, weekStart, onPrev, onNext, onToday, onEventClick }: Props) {
+export default function WeekView({ events, weekStart, onPrev, onNext, onToday, onEventClick, onSlotClick }: Props) {
   const today = new Date()
   const weekDays = DAYS.map((_, i) => addDays(weekStart, i))
 
@@ -113,7 +114,12 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
 
                 <div className="relative">
                   {HOURS.map(h => (
-                    <div key={h} style={{ height: ROW_HEIGHT }} className="border-b border-gray-50" />
+                    <div
+                      key={h}
+                      style={{ height: ROW_HEIGHT }}
+                      className="border-b border-gray-50 cursor-pointer hover:bg-gray-50/50"
+                      onClick={() => onSlotClick?.(new Date(day), h)}
+                    />
                   ))}
 
                   {(layoutByDay.get(colIdx) ?? []).map(ev => {
