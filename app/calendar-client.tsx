@@ -357,6 +357,17 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {/* Floating + button for mobile */}
+      {view !== 'day' && (
+        <button
+          onClick={() => setQuickAddInput('')}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center text-2xl md:hidden hover:bg-gray-700 active:scale-95"
+          aria-label="Add event"
+        >
+          +
+        </button>
+      )}
+
       <QuickAdd
         onCreated={fetchEvents}
         initialInput={quickAddInput}
