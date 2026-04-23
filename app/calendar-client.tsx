@@ -144,12 +144,12 @@ export default function CalendarPage() {
   }
 
   function handleSlotClick(date: Date, hour: number) {
-    const DAY = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
-    const day = DAY[date.getDay()]
+    const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+    const dateStr = `${MONTHS[date.getMonth()]} ${date.getDate()}`
     const time = hour >= 12
       ? `${hour === 12 ? 12 : hour - 12}pm`
-      : `${hour}am`
-    setQuickAddInput(`${day} ${time} `)
+      : `${hour === 0 ? 12 : hour}am`
+    setQuickAddInput(`${dateStr} ${time} `)
   }
 
   async function saveNotes() {

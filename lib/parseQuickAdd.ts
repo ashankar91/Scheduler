@@ -278,9 +278,10 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
   // One-off event
   let eventDate: Date | null = null
 
-  for (const t of tokens) {
-    if (DAY_MAP[t] !== undefined) {
-      eventDate = nextWeekday(DAY_MAP[t])
+  for (let i = 0; i < tokens.length; i++) {
+    if (DAY_MAP[tokens[i]] !== undefined) {
+      eventDate = nextWeekday(DAY_MAP[tokens[i]])
+      tokens[i] = '__skip__'
       break
     }
   }
@@ -290,7 +291,16 @@ export function parseQuickAdd(input: string): ParsedEvent | null {
       if (MONTH_MAP[tokens[i]] !== undefined) {
         const dayMatch = tokens[i + 1].match(/^(\d{1,2})(?:-(\d{1,2}))?$/)
         if (dayMatch) {
-          eventDate = new Date(new Date().getFullYear(), MONTH_MAP[tokens[i]], parseInt(dayMatch[1]))
+          const year = new Date().getFullYear()
+          const month = MONTH_MAP[tokens[i]]
+          const day = parseInt(dayMatch[1])
+          const candidate = new Date(year, month, day)
+          // If the date has already passed this year, use next year
+          const today = new Date(); today.setHours(0,0,0,0)
+          if (candidate < today) candidate.setFullYear(year + 1)
+          eventDate = candidate
+          tokens[i] = '__skip__'
+          tokens[i + 1] = '__skip__'
           break
         }
       }
