@@ -56,12 +56,16 @@ export default function ProjectsPage() {
     const title = newTitle.trim()
     if (!title) return
     setSaving(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('research_projects')
       .insert({ title, status: ['problem'], stage_notes: {} })
       .select()
       .single()
     setSaving(false)
+    if (error) {
+      alert(`Could not create project: ${error.message}`)
+      return
+    }
     setNewTitle('')
     setCreating(false)
     if (data) router.push(`/projects/${data.id}`)
