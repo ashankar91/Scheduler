@@ -62,6 +62,7 @@ export function expandRecurring(
         start_time: start.toISOString(),
         end_time: end.toISOString(),
         notes: rec.notes,
+        project_id: rec.project_id,
         recurring_event_id: rec.id,
         instance_date: ymd,
       })

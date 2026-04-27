@@ -6,7 +6,7 @@ import MonthView from '@/components/MonthView'
 import DayView from '@/components/DayView'
 import QuickAdd from '@/components/QuickAdd'
 import { supabase } from '@/lib/supabase'
-import { Event, RecurringEvent, CalendarEvent } from '@/lib/types'
+import { Event, RecurringEvent, CalendarEvent, ResearchProject } from '@/lib/types'
 import { expandRecurring } from '@/lib/recurring'
 import { TYPE_LABELS, TYPE_COLORS } from '@/lib/colors'
 
@@ -55,6 +55,9 @@ export default function CalendarPage() {
   const [editingNotes, setEditingNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const [quickAddInput, setQuickAddInput] = useState<string | undefined>(undefined)
+  const [projects, setProjects] = useState<ResearchProject[]>([])
+  const [editingProjectId, setEditingProjectId] = useState<string>('')
+  const [savingProject, setSavingProject] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
 
   const fetchEvents = useCallback(async () => {
@@ -77,6 +80,7 @@ export default function CalendarPage() {
     const oneOff: CalendarEvent[] = ((oneOffRes.data ?? []) as Event[]).map(e => ({
       id: e.id, title: e.title, type: e.type,
       start_time: e.start_time, end_time: e.end_time, notes: e.notes,
+      project_id: e.project_id,
     }))
 
     const exceptionSet = new Set<string>(
@@ -98,6 +102,12 @@ export default function CalendarPage() {
   useEffect(() => { fetchEvents() }, [fetchEvents])
 
   useEffect(() => {
+    supabase.from('research_projects').select('id, title, status').order('title').then(({ data }) => {
+      if (data) setProjects(data as ResearchProject[])
+    })
+  }, [])
+
+  useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setSelected(null)
@@ -111,6 +121,7 @@ export default function CalendarPage() {
   function handleEventClick(ev: CalendarEvent, domEvent: React.MouseEvent) {
     setSelected(ev)
     setEditingNotes(ev.notes ?? '')
+    setEditingProjectId(ev.project_id ?? '')
     setPopoverPos({ x: domEvent.clientX, y: domEvent.clientY })
   }
 
@@ -128,6 +139,7 @@ export default function CalendarPage() {
     const oneOff: CalendarEvent[] = ((oneOffRes.data ?? []) as Event[]).map(e => ({
       id: e.id, title: e.title, type: e.type,
       start_time: e.start_time, end_time: e.end_time, notes: e.notes,
+      project_id: e.project_id,
     }))
 
     const exSet = new Set<string>(
@@ -162,6 +174,20 @@ export default function CalendarPage() {
     }
     setSavingNotes(false)
     setSelected(null)
+    fetchEvents()
+  }
+
+  async function saveProject() {
+    if (!selected) return
+    setSavingProject(true)
+    const projId = editingProjectId || null
+    if (selected.recurring_event_id) {
+      await supabase.from('recurring_events').update({ project_id: projId }).eq('id', selected.recurring_event_id)
+    } else {
+      await supabase.from('events').update({ project_id: projId }).eq('id', selected.id)
+    }
+    setSavingProject(false)
+    setSelected(prev => prev ? { ...prev, project_id: projId } : null)
     fetchEvents()
   }
 
@@ -337,6 +363,31 @@ export default function CalendarPage() {
               </button>
             </div>
           </div>
+
+          {projects.length > 0 && (
+            <div className="mb-3 border-t border-gray-100 pt-3 flex items-center gap-2">
+              <span className="text-xs text-gray-400 flex-shrink-0">Project</span>
+              <select
+                value={editingProjectId}
+                onChange={e => setEditingProjectId(e.target.value)}
+                className="flex-1 text-xs text-gray-700 bg-gray-50 rounded border border-gray-200 px-2 py-1 outline-none focus:border-gray-400 min-w-0"
+              >
+                <option value="">—</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
+                ))}
+              </select>
+              {editingProjectId !== (selected.project_id ?? '') && (
+                <button
+                  onClick={saveProject}
+                  disabled={savingProject}
+                  className="text-xs bg-gray-900 text-white px-2.5 py-1 rounded hover:bg-gray-700 disabled:opacity-40 flex-shrink-0"
+                >
+                  {savingProject ? '…' : 'Save'}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col gap-1">
             {selected.recurring_event_id ? (

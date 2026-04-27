@@ -8,6 +8,10 @@ export type CommitmentType =
 
 export type RecurrenceType = 'weekly' | 'biweekly'
 
+export type ProjectStatus = 'problem' | 'ideas' | 'roadmap' | 'details' | 'writing' | 'submitted' | 'revision' | 'published'
+
+export type SubmissionOutcome = 'pending' | 'revision' | 'accepted' | 'rejected'
+
 // One-off event stored in DB
 export interface Event {
   id: string
@@ -16,6 +20,7 @@ export interface Event {
   start_time: string // ISO 8601
   end_time: string   // ISO 8601
   notes?: string
+  project_id?: string | null
   created_at?: string
 }
 
@@ -32,6 +37,7 @@ export interface RecurringEvent {
   starts_on: string   // YYYY-MM-DD
   ends_on?: string | null
   notes?: string
+  project_id?: string | null
   created_at?: string
 }
 
@@ -43,6 +49,33 @@ export interface CalendarEvent {
   start_time: string
   end_time: string
   notes?: string
+  project_id?: string | null
   recurring_event_id?: string  // set if this is a recurring instance
   instance_date?: string       // YYYY-MM-DD, set if recurring instance
+}
+
+export interface ResearchProject {
+  id: string
+  title: string
+  notes?: string | null
+  status: ProjectStatus
+  created_at?: string
+}
+
+export interface ProjectTodo {
+  id: string
+  project_id: string
+  title: string
+  done: boolean
+  position: number
+  created_at?: string
+}
+
+export interface PaperSubmission {
+  id: string
+  project_id: string
+  journal: string
+  submitted_date: string // YYYY-MM-DD
+  outcome: SubmissionOutcome
+  created_at?: string
 }
