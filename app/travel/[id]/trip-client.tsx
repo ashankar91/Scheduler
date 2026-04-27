@@ -34,6 +34,16 @@ export default function TripClient({ tripId }: { tripId: string }) {
   const [savedTripNotes, setSavedTripNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
 
+  const [editing, setEditing] = useState(false)
+  const [editType, setEditType] = useState<Trip['type']>('conference')
+  const [editName, setEditName] = useState('')
+  const [editPlace, setEditPlace] = useState('')
+  const [editArrival, setEditArrival] = useState('')
+  const [editDeparture, setEditDeparture] = useState('')
+  const [editGivingTalk, setEditGivingTalk] = useState(true)
+  const [editProjectId, setEditProjectId] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
   async function fetchAll() {
     const [tripRes, talkRes, todoRes, projRes] = await Promise.all([
       supabase.from('trips').select('*').eq('id', tripId).single(),
@@ -130,6 +140,36 @@ export default function TripClient({ tripId }: { tripId: string }) {
     router.push('/travel')
   }
 
+  function openEdit() {
+    if (!trip) return
+    setEditType(trip.type)
+    setEditName(trip.name ?? '')
+    setEditPlace(trip.place)
+    setEditArrival(trip.arrival_date)
+    setEditDeparture(trip.departure_date)
+    setEditGivingTalk(trip.giving_talk)
+    setEditProjectId(trip.project_id ?? '')
+    setEditing(true)
+  }
+
+  async function saveEdit() {
+    if (!editPlace.trim()) return
+    setSavingEdit(true)
+    const updates = {
+      type: editType,
+      name: editName.trim() || null,
+      place: editPlace.trim(),
+      arrival_date: editArrival,
+      departure_date: editDeparture,
+      giving_talk: editGivingTalk,
+      project_id: editProjectId || null,
+    }
+    await supabase.from('trips').update(updates).eq('id', tripId)
+    setTrip(prev => prev ? { ...prev, ...updates } : prev)
+    setSavingEdit(false)
+    setEditing(false)
+  }
+
   if (loading) return <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Loading…</div>
   if (!trip) return <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Trip not found.</div>
 
@@ -154,19 +194,125 @@ export default function TripClient({ tripId }: { tripId: string }) {
       </Link>
 
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <h1 className="text-xl font-semibold text-gray-900">{trip.place}</h1>
-          {trip.name && <span className="text-xl text-gray-400 font-normal">{trip.name}</span>}
-          <span className={`text-xs px-2.5 py-0.5 rounded-full border ${s.pill}`}>{s.label}</span>
+      {editing ? (
+        <div className="mb-6 p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Type</label>
+              <select
+                value={editType}
+                onChange={e => setEditType(e.target.value as Trip['type'])}
+                className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800"
+              >
+                {(['conference', 'workshop', 'seminar', 'research'] as Trip['type'][]).map(t => (
+                  <option key={t} value={t}>{TRIP_STYLES[t].label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 flex-1 min-w-36">
+              <label className="text-xs text-gray-500">Name (optional)</label>
+              <input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                placeholder="e.g. STOC, NT Seminar…"
+                className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800 placeholder:text-gray-400 focus:border-gray-400"
+              />
+            </div>
+            <div className="flex flex-col gap-1 flex-1 min-w-36">
+              <label className="text-xs text-gray-500">Place *</label>
+              <input
+                autoFocus
+                value={editPlace}
+                onChange={e => setEditPlace(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') setEditing(false) }}
+                className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800 focus:border-gray-400"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 flex-wrap items-end">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Arrival</label>
+              <input
+                type="date"
+                value={editArrival}
+                onChange={e => { setEditArrival(e.target.value); if (e.target.value > editDeparture) setEditDeparture(e.target.value) }}
+                className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Departure</label>
+              <input
+                type="date"
+                value={editDeparture}
+                min={editArrival}
+                onChange={e => setEditDeparture(e.target.value)}
+                className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800"
+              />
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer pb-1.5">
+              <input
+                type="checkbox"
+                checked={editGivingTalk}
+                onChange={e => setEditGivingTalk(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-gray-300 accent-gray-800"
+              />
+              <span className="text-sm text-gray-700">Giving a talk</span>
+            </label>
+          </div>
+          {projects.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Linked project (optional)</label>
+              <select
+                value={editProjectId}
+                onChange={e => setEditProjectId(e.target.value)}
+                className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800 max-w-xs"
+              >
+                <option value="">— none —</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={saveEdit}
+              disabled={savingEdit || !editPlace.trim()}
+              className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-40"
+            >
+              {savingEdit ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1.5"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-        <div className="text-sm text-gray-500">{arrFmt} – {depFmt}</div>
-        {linkedProject && (
-          <Link href={`/projects/${trip.project_id}`} className="text-xs text-blue-500 hover:text-blue-700 mt-0.5 inline-block">
-            ↗ {linkedProject.title}
-          </Link>
-        )}
-      </div>
+      ) : (
+        <div className="mb-6">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-xl font-semibold text-gray-900">{trip.place}</h1>
+                {trip.name && <span className="text-xl text-gray-400 font-normal">{trip.name}</span>}
+                <span className={`text-xs px-2.5 py-0.5 rounded-full border ${s.pill}`}>{s.label}</span>
+              </div>
+              <div className="text-sm text-gray-500">{arrFmt} – {depFmt}</div>
+              {linkedProject && (
+                <Link href={`/projects/${trip.project_id}`} className="text-xs text-blue-500 hover:text-blue-700 mt-0.5 inline-block">
+                  ↗ {linkedProject.title}
+                </Link>
+              )}
+            </div>
+            <button
+              onClick={openEdit}
+              className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded px-2 py-1 flex-shrink-0"
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="rounded-xl border border-gray-200 overflow-hidden mb-6">
