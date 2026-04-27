@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Trip, TripTalk, TripTodo, ResearchProject } from '@/lib/types'
 import { TRIP_STYLES } from '@/lib/colors'
@@ -9,6 +10,7 @@ import { TRIP_STYLES } from '@/lib/colors'
 type TripTab = 'talk' | 'checklist' | 'reimbursement'
 
 export default function TripClient({ tripId }: { tripId: string }) {
+  const router = useRouter()
   const [trip, setTrip] = useState<Trip | null>(null)
   const [talk, setTalk] = useState<TripTalk | null>(null)
   const [todos, setTodos] = useState<TripTodo[]>([])
@@ -120,6 +122,12 @@ export default function TripClient({ tripId }: { tripId: string }) {
     await supabase.from('trips').update({ notes: tripNotes || null }).eq('id', tripId)
     setSavedTripNotes(tripNotes)
     setSavingNotes(false)
+  }
+
+  async function deleteTrip() {
+    if (!confirm('Delete this trip? This cannot be undone.')) return
+    await supabase.from('trips').delete().eq('id', tripId)
+    router.push('/travel')
   }
 
   if (loading) return <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Loading…</div>
@@ -318,6 +326,15 @@ export default function TripClient({ tripId }: { tripId: string }) {
             {savingNotes ? 'Saving…' : 'Save notes'}
           </button>
         </div>
+      </div>
+
+      <div className="mt-10 pt-6 border-t border-gray-100">
+        <button
+          onClick={deleteTrip}
+          className="text-xs text-red-400 hover:text-red-600"
+        >
+          Delete this trip
+        </button>
       </div>
     </div>
   )
