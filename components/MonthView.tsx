@@ -1,8 +1,12 @@
 'use client'
 
 import { useMemo } from 'react'
-import { CalendarEvent } from '@/lib/types'
-import { TYPE_COLORS } from '@/lib/colors'
+import { CalendarEvent, Trip } from '@/lib/types'
+import { TYPE_COLORS, TRIP_STYLES } from '@/lib/colors'
+
+function toLocalYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MAX_VISIBLE = 3
@@ -27,6 +31,7 @@ function startOfMonthGrid(year: number, month: number): Date {
 
 interface Props {
   events: CalendarEvent[]
+  trips?: Trip[]
   year: number
   month: number // 0-indexed
   onPrev: () => void
@@ -36,7 +41,7 @@ interface Props {
   onDayClick: (date: Date) => void
 }
 
-export default function MonthView({ events, year, month, onPrev, onNext, onToday, onEventClick, onDayClick }: Props) {
+export default function MonthView({ events, trips = [], year, month, onPrev, onNext, onToday, onEventClick, onDayClick }: Props) {
   const today = new Date()
 
   const gridStart = useMemo(() => startOfMonthGrid(year, month), [year, month])
@@ -51,6 +56,17 @@ export default function MonthView({ events, year, month, onPrev, onNext, onToday
   }, [gridStart])
 
   const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  // Group trips by date
+  const tripsByDate = useMemo(() => {
+    const map = new Map<string, Trip[]>()
+    for (const day of days) {
+      const ymd = toLocalYMD(day)
+      const dayTrips = trips.filter(t => t.arrival_date <= ymd && t.departure_date >= ymd)
+      if (dayTrips.length > 0) map.set(dayKey(day), dayTrips)
+    }
+    return map
+  }, [trips, days])
 
   // Group events by date string
   const eventsByDate = useMemo(() => {
@@ -112,6 +128,19 @@ export default function MonthView({ events, year, month, onPrev, onNext, onToday
               </div>
 
               <div className="flex flex-col gap-0.5 min-h-0 overflow-hidden">
+                {(tripsByDate.get(dayKey(day)) ?? []).map(trip => {
+                  const s = TRIP_STYLES[trip.type]
+                  return (
+                    <a
+                      key={trip.id}
+                      href={`/travel/${trip.id}`}
+                      onClick={e => e.stopPropagation()}
+                      className={`block text-left w-full rounded px-1 py-0.5 truncate text-xs leading-tight ${s.banner} hover:opacity-90`}
+                    >
+                      {trip.name || trip.place}
+                    </a>
+                  )
+                })}
                 {visible.map(ev => {
                   const c = TYPE_COLORS[ev.type]
                   return (

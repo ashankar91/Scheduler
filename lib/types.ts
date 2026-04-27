@@ -71,6 +71,42 @@ export interface ProjectTodo {
   created_at?: string
 }
 
+export type TripType = 'conference' | 'workshop' | 'seminar' | 'research'
+
+export interface Trip {
+  id: string
+  type: TripType
+  name?: string | null
+  place: string
+  arrival_date: string    // YYYY-MM-DD
+  departure_date: string  // YYYY-MM-DD
+  giving_talk: boolean
+  project_id?: string | null
+  reimbursement_submitted: boolean
+  reimbursement_received: boolean
+  notes?: string | null
+  created_at?: string
+}
+
+export interface TripTalk {
+  id: string
+  trip_id: string
+  title?: string | null
+  talk_date?: string | null   // YYYY-MM-DD
+  talk_time?: string | null   // HH:MM:SS
+  duration_minutes: number
+  created_at?: string
+}
+
+export interface TripTodo {
+  id: string
+  trip_id: string
+  title: string
+  done: boolean
+  position: number
+  created_at?: string
+}
+
 export interface PaperSubmission {
   id: string
   project_id: string

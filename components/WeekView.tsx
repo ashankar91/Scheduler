@@ -1,30 +1,36 @@
 'use client'
 
 import { useMemo } from 'react'
-import { CalendarEvent } from '@/lib/types'
-import { TYPE_COLORS, TYPE_LABELS } from '@/lib/colors'
+import { CalendarEvent, Trip } from '@/lib/types'
+import { TYPE_COLORS, TYPE_LABELS, TRIP_STYLES } from '@/lib/colors'
 import { layoutDayEvents } from '@/lib/layout'
 
-const HOUR_START = 7   // 7am
-const HOUR_END   = 21  // 9pm
+const HOUR_START = 7
+const HOUR_END   = 21
 const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function addDays(d: Date, n: number): Date {
-  const r = new Date(d)
-  r.setDate(d.getDate() + n)
-  return r
+  const r = new Date(d); r.setDate(d.getDate() + n); return r
 }
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function toLocalYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function tripsForDay(trips: Trip[], day: Date): Trip[] {
+  const ymd = toLocalYMD(day)
+  return trips.filter(t => t.arrival_date <= ymd && t.departure_date >= ymd)
 }
 
 interface Props {
   events: CalendarEvent[]
   weekStart: Date
+  trips?: Trip[]
   onPrev: () => void
   onNext: () => void
   onToday: () => void
@@ -32,19 +38,17 @@ interface Props {
   onSlotClick?: (date: Date, hour: number) => void
 }
 
-export default function WeekView({ events, weekStart, onPrev, onNext, onToday, onEventClick, onSlotClick }: Props) {
+export default function WeekView({ events, weekStart, trips = [], onPrev, onNext, onToday, onEventClick, onSlotClick }: Props) {
   const today = new Date()
   const weekDays = DAYS.map((_, i) => addDays(weekStart, i))
 
   const weekLabel = useMemo(() => {
     const end = addDays(weekStart, 6)
     const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-    if (weekStart.getFullYear() !== end.getFullYear()) {
+    if (weekStart.getFullYear() !== end.getFullYear())
       return `${weekStart.toLocaleDateString('en-US', { ...opts, year: 'numeric' })} – ${end.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`
-    }
-    if (weekStart.getMonth() !== end.getMonth()) {
+    if (weekStart.getMonth() !== end.getMonth())
       return `${weekStart.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}, ${end.getFullYear()}`
-    }
     return `${weekStart.toLocaleDateString('en-US', { month: 'long' })} ${weekStart.getDate()}–${end.getDate()}, ${end.getFullYear()}`
   }, [weekStart])
 
@@ -61,11 +65,15 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
 
   const layoutByDay = useMemo(() => {
     const map = new Map<number, ReturnType<typeof layoutDayEvents>>()
-    for (let i = 0; i < 7; i++) {
-      map.set(i, layoutDayEvents(eventsByDay.get(i) ?? []))
-    }
+    for (let i = 0; i < 7; i++) map.set(i, layoutDayEvents(eventsByDay.get(i) ?? []))
     return map
   }, [eventsByDay])
+
+  const tripsByDay = useMemo(() =>
+    weekDays.map(day => tripsForDay(trips, day)),
+  [trips, weekDays])
+
+  const weekHasTrips = tripsByDay.some(t => t.length > 0)
 
   const ROW_HEIGHT = 48
 
@@ -74,9 +82,10 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
     const end = new Date(ev.end_time)
     const startH = start.getHours() + start.getMinutes() / 60
     const endH = end.getHours() + end.getMinutes() / 60
-    const top = (startH - HOUR_START) * ROW_HEIGHT
-    const height = Math.max((endH - startH) * ROW_HEIGHT, 20)
-    return { top, height }
+    return {
+      top: (startH - HOUR_START) * ROW_HEIGHT,
+      height: Math.max((endH - startH) * ROW_HEIGHT, 20),
+    }
   }
 
   return (
@@ -89,8 +98,10 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
       </div>
 
       <div className="flex flex-1 overflow-auto">
+        {/* Time labels */}
         <div className="w-14 flex-shrink-0 border-r border-gray-100 bg-white">
           <div className="h-10" />
+          {weekHasTrips && <div className="h-7 border-b border-gray-100" />}
           {HOURS.map(h => (
             <div key={h} style={{ height: ROW_HEIGHT }} className="flex items-start justify-end pr-2 pt-1">
               <span className="text-xs text-gray-400">
@@ -100,11 +111,14 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
           ))}
         </div>
 
+        {/* Day columns */}
         <div className="flex flex-1 min-w-0">
           {weekDays.map((day, colIdx) => {
             const isToday = isSameDay(day, today)
+            const dayTrips = tripsByDay[colIdx]
             return (
               <div key={colIdx} className="flex-1 border-r border-gray-100 last:border-r-0 min-w-0">
+                {/* Day header */}
                 <div className="h-10 flex flex-col items-center justify-center border-b border-gray-100">
                   <span className="text-xs text-gray-500">{DAYS[colIdx]}</span>
                   <span className={`text-sm font-medium leading-none mt-0.5 ${isToday ? 'text-white bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center' : 'text-gray-800'}`}>
@@ -112,6 +126,24 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
                   </span>
                 </div>
 
+                {/* All-day / trip row */}
+                {weekHasTrips && (
+                  <div className="h-7 border-b border-gray-100 px-0.5 py-0.5 overflow-hidden">
+                    {dayTrips.slice(0, 1).map(trip => {
+                      const s = TRIP_STYLES[trip.type]
+                      return (
+                        <a key={trip.id} href={`/travel/${trip.id}`} className={`block text-xs px-1.5 py-0.5 rounded truncate leading-tight ${s.banner} hover:opacity-90`}>
+                          {trip.name || trip.place}
+                        </a>
+                      )
+                    })}
+                    {dayTrips.length > 1 && (
+                      <div className="text-xs text-gray-400 leading-none mt-0.5">+{dayTrips.length - 1}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Time grid */}
                 <div className="relative">
                   {HOURS.map(h => (
                     <div
@@ -121,11 +153,9 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
                       onClick={() => onSlotClick?.(new Date(day), h)}
                     />
                   ))}
-
                   {(layoutByDay.get(colIdx) ?? []).map(ev => {
                     const c = TYPE_COLORS[ev.type]
                     const style = eventStyle(ev)
-                    const isRecurring = !!ev.recurring_event_id
                     const colWidth = 100 / ev.numCols
                     const leftPct = ev.col * colWidth
                     return (
@@ -133,12 +163,8 @@ export default function WeekView({ events, weekStart, onPrev, onNext, onToday, o
                         key={ev.id}
                         onClick={e => onEventClick(ev, e)}
                         className={`absolute rounded px-1.5 py-0.5 overflow-hidden cursor-pointer ${c.bg} ${c.text} border-l-2 ${c.border} hover:brightness-95`}
-                        style={{
-                          ...style,
-                          left: `calc(${leftPct}% + 2px)`,
-                          width: `calc(${colWidth}% - 4px)`,
-                        }}
-                        title={`${ev.title} · ${TYPE_LABELS[ev.type]}${isRecurring ? ' (recurring)' : ''}`}
+                        style={{ ...style, left: `calc(${leftPct}% + 2px)`, width: `calc(${colWidth}% - 4px)` }}
+                        title={`${ev.title} · ${TYPE_LABELS[ev.type]}`}
                       >
                         <div className="text-xs font-medium leading-tight truncate">{ev.title}</div>
                         {(style.height as number) > 30 && (

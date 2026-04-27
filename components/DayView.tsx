@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CalendarEvent } from '@/lib/types'
-import { TYPE_COLORS, TYPE_LABELS } from '@/lib/colors'
+import { CalendarEvent, Trip } from '@/lib/types'
+import { TYPE_COLORS, TYPE_LABELS, TRIP_STYLES } from '@/lib/colors'
 import { supabase } from '@/lib/supabase'
 
 function toYMD(d: Date): string {
@@ -12,6 +12,7 @@ function toYMD(d: Date): string {
 interface Props {
   date: Date
   events: CalendarEvent[]
+  trips?: Trip[]
   onBack: () => void
   onEventNoteSaved: () => void
   onDeleteOneOff: (ev: CalendarEvent) => void
@@ -19,7 +20,7 @@ interface Props {
   onDeleteSeries: (ev: CalendarEvent) => void
 }
 
-export default function DayView({ date, events, onBack, onEventNoteSaved, onDeleteOneOff, onDeleteInstance, onDeleteSeries }: Props) {
+export default function DayView({ date, events, trips = [], onBack, onEventNoteSaved, onDeleteOneOff, onDeleteInstance, onDeleteSeries }: Props) {
   const [dayNotes, setDayNotes] = useState('')
   const [savedDayNotes, setSavedDayNotes] = useState('')
   const [savingDay, setSavingDay] = useState(false)
@@ -81,6 +82,21 @@ export default function DayView({ date, events, onBack, onEventNoteSaved, onDele
         </button>
         <span className="text-sm font-medium text-gray-800">{dateLabel}</span>
       </div>
+
+      {trips.length > 0 && (
+        <div className="px-4 py-1.5 border-b border-gray-100 space-y-1 flex-shrink-0">
+          {trips.map(trip => {
+            const s = TRIP_STYLES[trip.type]
+            return (
+              <a key={trip.id} href={`/travel/${trip.id}`} className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${s.banner} hover:opacity-90`}>
+                <span className="font-medium">{trip.place}</span>
+                {trip.name && <span className="opacity-80">· {trip.name}</span>}
+                <span className="ml-auto opacity-70">{s.label}</span>
+              </a>
+            )
+          })}
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">

@@ -6,7 +6,7 @@ import MonthView from '@/components/MonthView'
 import DayView from '@/components/DayView'
 import QuickAdd from '@/components/QuickAdd'
 import { supabase } from '@/lib/supabase'
-import { Event, RecurringEvent, CalendarEvent, ResearchProject } from '@/lib/types'
+import { Event, RecurringEvent, CalendarEvent, ResearchProject, Trip, TripTalk } from '@/lib/types'
 import { expandRecurring } from '@/lib/recurring'
 import { TYPE_LABELS, TYPE_COLORS } from '@/lib/colors'
 
@@ -36,6 +36,10 @@ function monthGridStart(year: number, month: number): Date {
   return d
 }
 
+function toLocalYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 type CalView = 'week' | 'month' | 'day'
 
 export default function CalendarPage() {
@@ -58,6 +62,7 @@ export default function CalendarPage() {
   const [projects, setProjects] = useState<ResearchProject[]>([])
   const [editingProjectId, setEditingProjectId] = useState<string>('')
   const [savingProject, setSavingProject] = useState(false)
+  const [trips, setTrips] = useState<Trip[]>([])
   const popoverRef = useRef<HTMLDivElement>(null)
 
   const fetchEvents = useCallback(async () => {
@@ -71,10 +76,15 @@ export default function CalendarPage() {
       to = addDays(from, 42)
     }
 
-    const [oneOffRes, recurringRes, exceptionsRes] = await Promise.all([
+    const fromYMD = toLocalYMD(from)
+    const toYMD = toLocalYMD(to)
+
+    const [oneOffRes, recurringRes, exceptionsRes, tripsRes, talksRes] = await Promise.all([
       supabase.from('events').select('*').gte('start_time', from.toISOString()).lt('start_time', to.toISOString()).order('start_time'),
       supabase.from('recurring_events').select('*'),
       supabase.from('recurring_exceptions').select('recurring_event_id, exception_date'),
+      supabase.from('trips').select('*').lte('arrival_date', toYMD).gte('departure_date', fromYMD),
+      supabase.from('trip_talks').select('*').gte('talk_date', fromYMD).lte('talk_date', toYMD),
     ])
 
     const oneOff: CalendarEvent[] = ((oneOffRes.data ?? []) as Event[]).map(e => ({
@@ -95,7 +105,22 @@ export default function CalendarPage() {
       to,
     )
 
-    setEvents([...oneOff, ...recurring].sort((a, b) => a.start_time.localeCompare(b.start_time)))
+    const talkEvents: CalendarEvent[] = ((talksRes.data ?? []) as TripTalk[])
+      .filter(t => t.talk_date && t.talk_time && t.title)
+      .map(t => {
+        const start = new Date(`${t.talk_date}T${t.talk_time}`)
+        const end = new Date(start.getTime() + t.duration_minutes * 60 * 1000)
+        return {
+          id: `trip_talk:${t.id}`,
+          title: t.title!,
+          type: 'talk' as const,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+        }
+      })
+
+    setTrips((tripsRes.data ?? []) as Trip[])
+    setEvents([...oneOff, ...recurring, ...talkEvents].sort((a, b) => a.start_time.localeCompare(b.start_time)))
     setLoading(false)
   }, [view, weekStart, monthYear])
 
@@ -292,6 +317,7 @@ export default function CalendarPage() {
           <WeekView
             events={events}
             weekStart={weekStart}
+            trips={trips}
             onPrev={() => setWeekStart(d => addDays(d, -7))}
             onNext={() => setWeekStart(d => addDays(d, 7))}
             onToday={() => setWeekStart(startOfWeek(new Date()))}
@@ -301,6 +327,7 @@ export default function CalendarPage() {
         ) : view === 'month' ? (
           <MonthView
             events={events}
+            trips={trips}
             year={monthYear.year}
             month={monthYear.month}
             onPrev={prevMonth}
@@ -313,6 +340,10 @@ export default function CalendarPage() {
           <DayView
             date={selectedDay}
             events={dayEvents}
+            trips={trips.filter(t => {
+              const ymd = toLocalYMD(selectedDay)
+              return t.arrival_date <= ymd && t.departure_date >= ymd
+            })}
             onBack={() => setView('month')}
             onEventNoteSaved={() => openDay(selectedDay)}
             onDeleteOneOff={dayDeleteOneOff}

@@ -7,6 +7,7 @@ const links = [
   { href: '/',             label: 'Calendar' },
   { href: '/commitments',  label: 'Commitments' },
   { href: '/projects',     label: 'Projects' },
+  { href: '/travel',       label: 'Travel' },
 ]
 
 export default function Nav() {
