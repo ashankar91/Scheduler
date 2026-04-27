@@ -377,7 +377,7 @@ export default function CalendarPage() {
                   <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
               </select>
-              {editingProjectId !== (selected.project_id ?? '') && (
+              {editingProjectId !== (selected.project_id ?? '') ? (
                 <button
                   onClick={saveProject}
                   disabled={savingProject}
@@ -385,7 +385,15 @@ export default function CalendarPage() {
                 >
                   {savingProject ? '…' : 'Save'}
                 </button>
-              )}
+              ) : editingProjectId ? (
+                <a
+                  href={`/projects/${editingProjectId}`}
+                  className="text-xs text-gray-400 hover:text-gray-700 flex-shrink-0"
+                  title="Open project"
+                >
+                  →
+                </a>
+              ) : null}
             </div>
           )}
 

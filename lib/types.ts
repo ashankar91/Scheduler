@@ -57,8 +57,8 @@ export interface CalendarEvent {
 export interface ResearchProject {
   id: string
   title: string
-  notes?: string | null
-  status: ProjectStatus
+  stage_notes: Record<string, string>
+  status: ProjectStatus[]
   created_at?: string
 }
 

@@ -19,10 +19,17 @@ const STAGE_STYLES: Record<ProjectStatus, { pill: string; dot: string; label: st
 }
 
 const GROUPS: { label: string; stages: ProjectStatus[] }[] = [
-  { label: 'In Progress', stages: ['problem', 'ideas', 'roadmap', 'details', 'writing'] },
-  { label: 'Submitted / Out', stages: ['submitted', 'revision'] },
-  { label: 'Published', stages: ['published'] },
+  { label: 'In Progress',      stages: ['problem', 'ideas', 'roadmap', 'details', 'writing'] },
+  { label: 'Submitted / Out',  stages: ['submitted', 'revision'] },
+  { label: 'Published',        stages: ['published'] },
 ]
+
+// Primary stage = most advanced checked stage, used for grouping
+function primaryStage(status: ProjectStatus[]): ProjectStatus {
+  if (!status?.length) return 'problem'
+  return status.reduce((max, s) =>
+    STAGES.indexOf(s) > STAGES.indexOf(max) ? s : max, status[0])
+}
 
 export default function ProjectsPage() {
   const router = useRouter()
@@ -51,7 +58,7 @@ export default function ProjectsPage() {
     setSaving(true)
     const { data } = await supabase
       .from('research_projects')
-      .insert({ title, status: 'problem' })
+      .insert({ title, status: ['problem'], stage_notes: {} })
       .select()
       .single()
     setSaving(false)
@@ -114,15 +121,16 @@ export default function ProjectsPage() {
       ) : (
         <div className="space-y-8">
           {GROUPS.map(({ label, stages }) => {
-            const group = projects.filter(p => stages.includes(p.status))
+            const group = projects.filter(p => stages.includes(primaryStage(p.status)))
             if (group.length === 0) return null
             return (
               <div key={label}>
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{label}</div>
                 <div className="space-y-2">
                   {group.map(project => {
-                    const s = STAGE_STYLES[project.status]
                     const pending = pendingCount(project.id)
+                    const notes = project.stage_notes || {}
+                    const firstNote = Object.values(notes).find(n => n?.trim())
                     return (
                       <button
                         key={project.id}
@@ -130,18 +138,20 @@ export default function ProjectsPage() {
                         className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors group"
                       >
                         <div className="flex items-start gap-3">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${s.dot}`} />
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${STAGE_STYLES[primaryStage(project.status)].dot}`} />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                               <span className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
                                 {project.title}
                               </span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full border ${s.pill}`}>
-                                {s.label}
-                              </span>
+                              {(project.status || []).map(s => (
+                                <span key={s} className={`text-xs px-2 py-0.5 rounded-full border ${STAGE_STYLES[s].pill}`}>
+                                  {STAGE_STYLES[s].label}
+                                </span>
+                              ))}
                             </div>
-                            {project.notes && (
-                              <div className="text-xs text-gray-500 truncate">{project.notes}</div>
+                            {firstNote && (
+                              <div className="text-xs text-gray-500 truncate">{firstNote}</div>
                             )}
                             {pending > 0 && (
                               <div className="text-xs text-gray-400 mt-0.5">
