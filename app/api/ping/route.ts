@@ -1,8 +1,8 @@
 import { getSupabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
-// Keep-alive endpoint — hit this every few days to prevent Supabase from
-// pausing the project due to inactivity on the free tier.
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const supabase = getSupabase()
   const { error } = await supabase.from('events').select('id').limit(1)
