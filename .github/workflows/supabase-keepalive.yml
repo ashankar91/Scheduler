@@ -1,3 +1,5 @@
+# Note: GitHub auto-disables scheduled workflows after 60 days of repo inactivity.
+# Any push to the repo resets that clock.
 name: Supabase keep-alive ping
 
 on:
