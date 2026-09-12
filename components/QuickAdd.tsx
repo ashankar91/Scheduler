@@ -85,7 +85,7 @@ export default function QuickAdd({ onCreated, initialInput, onClose }: Props) {
         const today = new Date()
         const todayDow = today.getDay()
         let diff = dow - todayDow
-        if (diff <= 0) diff += 7
+        if (diff < 0) diff += 7
         const date = new Date(today)
         date.setDate(today.getDate() + diff)
         const start = new Date(date)

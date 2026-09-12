@@ -204,7 +204,7 @@ export default function TripClient({ tripId }: { tripId: string }) {
                 onChange={e => setEditType(e.target.value as Trip['type'])}
                 className="text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-800"
               >
-                {(['conference', 'workshop', 'seminar', 'research'] as Trip['type'][]).map(t => (
+                {(['conference', 'workshop', 'seminar', 'colloquium', 'research'] as Trip['type'][]).map(t => (
                   <option key={t} value={t}>{TRIP_STYLES[t].label}</option>
                 ))}
               </select>

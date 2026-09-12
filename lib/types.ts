@@ -71,7 +71,7 @@ export interface ProjectTodo {
   created_at?: string
 }
 
-export type TripType = 'conference' | 'workshop' | 'seminar' | 'research'
+export type TripType = 'conference' | 'workshop' | 'seminar' | 'colloquium' | 'research'
 
 export interface Trip {
   id: string

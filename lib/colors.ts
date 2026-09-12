@@ -13,6 +13,7 @@ export const TRIP_STYLES: Record<TripType, { pill: string; banner: string; dot: 
   conference: { pill: 'bg-blue-100 text-blue-700 border-blue-200',          banner: 'bg-blue-500 text-white',     dot: 'bg-blue-500',    label: 'Conference'     },
   workshop:   { pill: 'bg-teal-100 text-teal-700 border-teal-200',          banner: 'bg-teal-600 text-white',     dot: 'bg-teal-500',    label: 'Workshop'       },
   seminar:    { pill: 'bg-violet-100 text-violet-700 border-violet-200',    banner: 'bg-violet-500 text-white',   dot: 'bg-violet-500',  label: 'Seminar'        },
+  colloquium: { pill: 'bg-amber-100 text-amber-700 border-amber-200',       banner: 'bg-amber-500 text-white',    dot: 'bg-amber-500',   label: 'Colloquium'     },
   research:   { pill: 'bg-emerald-100 text-emerald-700 border-emerald-200', banner: 'bg-emerald-600 text-white',  dot: 'bg-emerald-500', label: 'Research Visit' },
 }
 

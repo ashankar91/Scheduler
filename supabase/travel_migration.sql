@@ -2,7 +2,7 @@
 
 create table if not exists trips (
   id                      uuid default gen_random_uuid() primary key,
-  type                    text not null check (type in ('conference', 'workshop', 'seminar', 'research')),
+  type                    text not null check (type in ('conference', 'workshop', 'seminar', 'colloquium', 'research')),
   name                    text,
   place                   text not null,
   arrival_date            date not null,

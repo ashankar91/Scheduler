@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Trip, TripType, ResearchProject } from '@/lib/types'
 import { TRIP_STYLES } from '@/lib/colors'
 
-const TRIP_TYPES: TripType[] = ['conference', 'workshop', 'seminar', 'research']
+const TRIP_TYPES: TripType[] = ['conference', 'workshop', 'seminar', 'colloquium', 'research']
 
 function toLocalYMD(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

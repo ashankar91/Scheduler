@@ -54,7 +54,7 @@ function nextWeekday(dayIndex: number): Date {
   const today = new Date()
   const todayDay = today.getDay()
   let diff = dayIndex - todayDay
-  if (diff <= 0) diff += 7
+  if (diff < 0) diff += 7
   const d = new Date(today)
   d.setDate(today.getDate() + diff)
   return d
