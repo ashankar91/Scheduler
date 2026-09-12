@@ -61,7 +61,7 @@ function nextWeekday(dayIndex: number): Date {
 }
 
 function toYMD(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function inferType(allText: string, hasSecondPart: boolean): CommitmentType {
@@ -154,7 +154,7 @@ function parseUntilDate(tokens: string[]): { ymd: string; untilIdx: number } | n
             ? parseInt(yearToken)
             : new Date().getFullYear()
           const d = new Date(year, MONTH_MAP[monthToken], day)
-          return { ymd: d.toISOString().slice(0, 10), untilIdx: i }
+          return { ymd: toYMD(d), untilIdx: i }
         }
       }
     }
